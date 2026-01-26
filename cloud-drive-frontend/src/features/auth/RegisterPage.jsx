@@ -23,19 +23,23 @@ import { registerUser } from "../../lib/auth/authApi";
 
 // ---- helpers ----
 function getApiErrorMessage(err) {
-  const detail = err?.response?.data?.detail;
-  if (!detail) return "Something went wrong. Please try again.";
-
-  if (typeof detail === "string") return detail;
-
-  if (Array.isArray(detail)) {
-    const first = detail[0];
-    const msg = first?.msg || "Validation error.";
-    return msg;
+  // Network / CORS / backend down
+  if (!err?.response) {
+    return err?.message || "Network error (check backend URL + CORS + Docker port mapping).";
   }
 
-  return "Request failed. Please try again.";
+  const status = err.response.status;
+  const data = err.response.data;
+
+  const detail = data?.detail;
+  if (typeof detail === "string") return `${status}: ${detail}`;
+  if (Array.isArray(detail)) return `${status}: ${detail?.[0]?.msg || "Validation error"}`;
+
+  if (typeof data?.message === "string") return `${status}: ${data.message}`;
+
+  return `${status}: Request failed`;
 }
+
 
 const schema = z
   .object({

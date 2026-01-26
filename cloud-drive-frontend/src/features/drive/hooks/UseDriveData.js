@@ -10,6 +10,7 @@ export function useDriveData({ parentId, folderId, view, onError }) {
   const currentParentId = useMemo(() => (parentId ? Number(parentId) : null), [parentId]);
   const currentFolderId = useMemo(() => (folderId ? Number(folderId) : null), [folderId]);
 
+
   const fetchFolders = useCallback(async () => {
     const pageSize = 10;
     let page = 1;

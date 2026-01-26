@@ -1,10 +1,12 @@
-import React, { useMemo, useRef, useState, useCallback } from "react";
+import React, { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Box, Paper, Snackbar, Alert } from "@mui/material";
 
 import { http } from "../../lib/api/http";
 import { getApiErrorMessage } from "./utils/format";
 import { useDriveData } from "./hooks/useDriveData";
+
+import DriveBreadCrumbs from "./Component/DriveBreadCrumbs";
 
 import DriveToolbar from "./Component/DriveToolbar";
 import DriveTable from "./Component/DriveTable";
@@ -22,12 +24,14 @@ export default function DrivePage() {
   const folderId = searchParams.get("folder_id");
   const view = searchParams.get("view") || "drive";
 
+  // Toast
   const [toast, setToast] = useState({ open: false, severity: "success", message: "" });
   const showToast = (severity, message) => setToast({ open: true, severity, message });
 
+  // Stable error handler (prevents refresh loops)
   const handleError = useCallback((msg) => {
-  showToast("error", msg);
-}, []);
+    showToast("error", msg);
+  }, []);
 
   const {
     folders,
@@ -45,6 +49,30 @@ export default function DrivePage() {
     onError: handleError,
   });
 
+  // Breadcrumb
+  const [breadcrumbPath, setBreadcrumbPath] = useState([]);
+
+  const fetchBreadcrumbPath = useCallback(async () => {
+    // only show breadcrumbs inside Drive view
+    if (view !== "drive") {
+      setBreadcrumbPath([]);
+      return;
+    }
+
+    // root
+    if (!currentFolderId) {
+      setBreadcrumbPath([]);
+      return;
+    }
+
+    const { data } = await http.get(`/folders/${currentFolderId}/path`);
+    setBreadcrumbPath(Array.isArray(data) ? data : []);
+  }, [currentFolderId, view]);
+
+  useEffect(() => {
+    fetchBreadcrumbPath().catch(() => setBreadcrumbPath([]));
+  }, [fetchBreadcrumbPath]);
+
   // Upload file input
   const uploadRef = useRef(null);
 
@@ -52,7 +80,7 @@ export default function DrivePage() {
   const [rowMenuAnchorEl, setRowMenuAnchorEl] = useState(null);
   const [rowMenuItem, setRowMenuItem] = useState(null);
 
-  // Inline rename for just-created folder
+  // Inline rename
   const [inlineRenameId, setInlineRenameId] = useState(null);
   const inlineRenameRef = useRef(null);
 
@@ -68,7 +96,7 @@ export default function DrivePage() {
   const [uploadNewVersionOpen, setUploadNewVersionOpen] = useState(false);
   const [uploadNewVersionFileId, setUploadNewVersionFileId] = useState(null);
 
-  // Derived
+  // Combine folders + files
   const items = useMemo(() => {
     if (view !== "drive") return (files || []).map((f) => ({ type: "file", data: f }));
     return [
@@ -77,26 +105,51 @@ export default function DrivePage() {
     ];
   }, [folders, files, view]);
 
-  const pageTitle = useMemo(() => {
-    if (view === "shared") return "Shared with me";
-    if (view === "shared-by-me") return "Shared by me";
-    return currentFolderId ? `Folder #${currentFolderId}` : "My Drive";
-  }, [view, currentFolderId]);
-
   const canGoBack = Boolean(view === "drive" && (currentFolderId || currentParentId));
 
-  // Navigation helpers
-  const goDriveRoot = () => setSearchParams({ view: "drive" });
+  // Navigation
+  const goDriveRoot = useCallback(() => {
+    setSearchParams({ view: "drive" });
+  }, [setSearchParams]);
 
-  const openFolder = (folder) => {
-    setSearchParams({
-      view: "drive",
-      parent_id: String(folder.id),
-      folder_id: String(folder.id),
-    });
-  };
+  const openFolder = useCallback(
+    (folder) => {
+      setSearchParams({
+        view: "drive",
+        parent_id: String(folder.id),
+        folder_id: String(folder.id),
+      });
+    },
+    [setSearchParams]
+  );
 
-  // Upload file
+  // breadcrumb click open by id
+  const openFolderById = useCallback(
+    (id) => {
+      setSearchParams({
+        view: "drive",
+        parent_id: String(id),
+        folder_id: String(id),
+      });
+    },
+    [setSearchParams]
+  );
+
+  // Build breadcrumb node for toolbar title
+  const titleNode = useMemo(() => {
+    if (view === "shared") return "Shared with me";
+    if (view === "shared-by-me") return "Shared by me";
+
+    return (
+      <DriveBreadCrumbs
+        path={breadcrumbPath}
+        onGoRoot={goDriveRoot}
+        onOpenFolder={openFolderById}
+      />
+    );
+  }, [view, breadcrumbPath, goDriveRoot, openFolderById]);
+
+  // Upload
   const triggerUpload = () => uploadRef.current?.click();
 
   const handleUploadChange = async (e) => {
@@ -121,32 +174,50 @@ export default function DrivePage() {
     }
   };
 
-  // Create folder
-  const createFolder = async () => {
-    try {
-      const payload = { name: "New folder", parent_id: currentParentId };
-      const { data } = await http.post("/folders/create", payload);
+// Create folder (inside the currently opened folder)
+const createFolder = async () => {
+  try {
+    const payload = {
+      name: "New folder",
+      parent_id: currentFolderId ?? null, // <-- IMPORTANT
+    };
 
-      setFolders((prev) => [data, ...prev]);
-      setInlineRenameId(data.id);
-      setTimeout(() => inlineRenameRef.current?.focus(), 50);
-    } catch (err) {
-      showToast("error", getApiErrorMessage(err));
-    }
-  };
+    const { data } = await http.post("/folders/create", payload);
 
+    setFolders((prev) => [data, ...prev]);
+    setInlineRenameId(data.id);
+    setTimeout(() => inlineRenameRef.current?.focus(), 50);
+  } catch (err) {
+    showToast("error", getApiErrorMessage(err));
+  }
+};
+
+
+  // Inline rename (persist via backend endpoint)
   const commitInlineRename = async (folder, newName) => {
     const trimmed = (newName || "").trim();
     setInlineRenameId(null);
 
     if (!trimmed || trimmed === folder.name) return;
 
-    // NOTE: no rename endpoint in your backend paste => UI only for now
+    const prevName = folder.name;
     setFolders((prev) => prev.map((f) => (f.id === folder.id ? { ...f, name: trimmed } : f)));
-    showToast("success", "Folder renamed (UI only). Add backend rename endpoint to persist.");
+
+    try {
+      const { data } = await http.patch(`/folders/${folder.id}/rename`, { name: trimmed });
+
+      setFolders((prev) => prev.map((f) => (f.id === folder.id ? data : f)));
+
+      // if we are inside this folder, refresh breadcrumbs (name changed)
+      fetchBreadcrumbPath().catch(() => {});
+      showToast("success", "Folder renamed.");
+    } catch (err) {
+      setFolders((prev) => prev.map((f) => (f.id === folder.id ? { ...f, name: prevName } : f)));
+      showToast("error", getApiErrorMessage(err));
+    }
   };
 
-  // Row menu handlers
+  // Row menu
   const openRowMenu = (evt, item) => {
     setRowMenuAnchorEl(evt.currentTarget);
     setRowMenuItem(item);
@@ -161,6 +232,7 @@ export default function DrivePage() {
       await http.delete(`/folders/delete/${id}`);
       showToast("success", "Folder deleted.");
       setFolders((prev) => prev.filter((f) => f.id !== id));
+      fetchBreadcrumbPath().catch(() => {});
     } catch (err) {
       showToast("error", getApiErrorMessage(err));
     }
@@ -189,22 +261,26 @@ export default function DrivePage() {
     setRenameModalOpen(true);
   };
 
+  // Modal rename (persist folders using backend)
   const submitRenameModal = async (newName) => {
     const trimmed = (newName || "").trim();
     if (!renameTarget || !trimmed) return;
 
     setRenameModalOpen(false);
 
-    if (renameTarget.type === "folder") {
-      setFolders((prev) =>
-        prev.map((f) => (f.id === renameTarget.data.id ? { ...f, name: trimmed } : f))
-      );
-      showToast("success", "Folder renamed (UI only). Add backend rename endpoint to persist.");
-    } else {
-      setFiles((prev) =>
-        prev.map((x) => (x.id === renameTarget.data.id ? { ...x, name: trimmed } : x))
-      );
-      showToast("success", "File renamed (UI only). Add backend rename endpoint to persist.");
+    try {
+      if (renameTarget.type === "folder") {
+        const { data } = await http.patch(`/folders/${renameTarget.data.id}/rename`, { name: trimmed });
+        setFolders((prev) => prev.map((f) => (f.id === renameTarget.data.id ? data : f)));
+        fetchBreadcrumbPath().catch(() => {});
+        showToast("success", "Folder renamed.");
+      } else {
+        // you still don’t have a file-rename endpoint, so keep UI-only for files
+        setFiles((prev) => prev.map((x) => (x.id === renameTarget.data.id ? { ...x, name: trimmed } : x)));
+        showToast("success", "File renamed (UI only). Add backend endpoint to persist.");
+      }
+    } catch (err) {
+      showToast("error", getApiErrorMessage(err));
     }
   };
 
@@ -257,7 +333,7 @@ export default function DrivePage() {
       <Paper sx={{ p: 2 }}>
         <DriveToolbar
           view={view}
-          pageTitle={pageTitle}
+          pageTitle={titleNode}  // <-- breadcrumb node for drive view
           loading={loading}
           onCreateFolder={createFolder}
           onTriggerUpload={triggerUpload}
