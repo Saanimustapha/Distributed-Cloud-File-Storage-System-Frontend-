@@ -1,0 +1,103 @@
+import React from "react";
+import { Menu, MenuItem, ListItemIcon } from "@mui/material";
+
+import DownloadIcon from "@mui/icons-material/Download";
+import DeleteIcon from "@mui/icons-material/Delete";
+import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
+import ShareIcon from "@mui/icons-material/Share";
+import SwapVertIcon from "@mui/icons-material/SwapVert";
+
+export default function RowMenu({
+  anchorEl,
+  open,
+  onClose,
+  item, // { type, data }
+  onRename,
+  onDeleteFolder,
+  onDownload,
+  onUploadNewVersion,
+  onShare,
+  onDeleteFile,
+}) {
+  return (
+    <Menu anchorEl={anchorEl} open={open} onClose={onClose}>
+      {item?.type === "folder" ? (
+        <>
+          <MenuItem
+            onClick={() => {
+              onClose();
+              onRename(item);
+            }}
+          >
+            <ListItemIcon>
+              <DriveFileRenameOutlineIcon fontSize="small" />
+            </ListItemIcon>
+            Rename
+          </MenuItem>
+
+          <MenuItem
+            onClick={() => {
+              onClose();
+              onDeleteFolder(item.data.id);
+            }}
+          >
+            <ListItemIcon>
+              <DeleteIcon fontSize="small" />
+            </ListItemIcon>
+            Delete folder
+          </MenuItem>
+        </>
+      ) : (
+        <>
+          <MenuItem
+            onClick={() => {
+              onClose();
+              onDownload(item.data);
+            }}
+          >
+            <ListItemIcon>
+              <DownloadIcon fontSize="small" />
+            </ListItemIcon>
+            Download
+          </MenuItem>
+
+          <MenuItem
+            onClick={() => {
+              onClose();
+              onUploadNewVersion(item.data.id);
+            }}
+          >
+            <ListItemIcon>
+              <SwapVertIcon fontSize="small" />
+            </ListItemIcon>
+            Upload new version
+          </MenuItem>
+
+          <MenuItem
+            onClick={() => {
+              onClose();
+              onShare(item.data.id);
+            }}
+          >
+            <ListItemIcon>
+              <ShareIcon fontSize="small" />
+            </ListItemIcon>
+            Share file
+          </MenuItem>
+
+          <MenuItem
+            onClick={() => {
+              onClose();
+              onDeleteFile(item.data.id);
+            }}
+          >
+            <ListItemIcon>
+              <DeleteIcon fontSize="small" />
+            </ListItemIcon>
+            Delete file
+          </MenuItem>
+        </>
+      )}
+    </Menu>
+  );
+}
