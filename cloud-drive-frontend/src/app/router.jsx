@@ -9,6 +9,8 @@ import DrivePage from "../features/drive/DrivePage";
 // import NodesPage from "../features/admin/nodes/NodesPage";
 import AppShell from "../components/layout/AppShell";
 import FilePeoplePage from "../features/files/FilePeoplePage";
+import FileViewerPage from "../features/files/FileViewerPage";
+import { NotificationsProvider } from "./NotificationsProvider";
 
 
 export const router = createBrowserRouter([
@@ -19,12 +21,15 @@ export const router = createBrowserRouter([
     path: "/app",
     element: (
       <ProtectedRoute>
-        <AppShell />
+        <NotificationsProvider>
+          <AppShell />
+        </NotificationsProvider>
       </ProtectedRoute>
     ),
     children: [
       { path: "drive", element: <DrivePage /> },
-      { path: "files/:fileId/people", element: <FilePeoplePage /> }
+      { path: "files/:fileId/people", element: <FilePeoplePage /> },
+      { path: "files/:fileId/view", element: <FileViewerPage /> },
       // { path: "shared", element: <SharedPage /> },
       // { path: "files/:fileId", element: <FileDetailsPage /> },
       // { path: "admin/nodes", element: <NodesPage /> },

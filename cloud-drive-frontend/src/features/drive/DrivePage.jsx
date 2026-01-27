@@ -370,7 +370,7 @@ const submitShare = async ({ userId, role }) => {
           onInlineCommit={commitInlineRename}
           onInlineCancel={() => setInlineRenameId(null)}
           onOpenFolder={openFolder}
-          onOpenFile={(file) => navigate(`/app/files/${file.id}`)}
+          onOpenFile={(file) => navigate(`/app/files/${file.id}/view`, { state: { file } })}
           onOpenRowMenu={openRowMenu}
           onPeopleClick={(file) => navigate(`/app/files/${file.id}/people`)}
         />

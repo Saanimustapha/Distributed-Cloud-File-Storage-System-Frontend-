@@ -16,6 +16,7 @@ import {
   Menu,
   MenuItem,
   Stack,
+  Badge,
 } from "@mui/material";
 
 import MenuIcon from "@mui/icons-material/Menu";
@@ -23,16 +24,22 @@ import HomeIcon from "@mui/icons-material/Home";
 import GroupIcon from "@mui/icons-material/Group";
 import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import DnsIcon from "@mui/icons-material/Dns";
+import NotificationsIcon from "@mui/icons-material/Notifications";
 
 import { tokenStorage } from "../../lib/auth/tokenStorage";
 import { http } from "../../lib/api/http";
+import { useNotifications } from "../../app/NotificationsProvider";
+
 
 export default function AppShell() {
   const navigate = useNavigate();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
+  const [notifAnchorEl, setNotifAnchorEl] = useState(null);
   const [me, setMe] = useState(null);
+
+  const { items: notifications, hasUnread, markRead } = useNotifications();
 
   const logout = () => {
     tokenStorage.clear();
@@ -58,6 +65,12 @@ export default function AppShell() {
     { label: "Nodes", icon: <DnsIcon />, onClick: () => navigate("/app/admin/nodes") },
   ];
 
+  const openNotifMenu = (e) => setNotifAnchorEl(e.currentTarget);
+  const closeNotifMenu = () => setNotifAnchorEl(null);
+
+  const openProfileMenu = (e) => setProfileAnchorEl(e.currentTarget);
+  const closeProfileMenu = () => setProfileAnchorEl(null);
+
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
       {/* Top Navbar (Blue) */}
@@ -74,7 +87,6 @@ export default function AppShell() {
 
           {/* App icon + name (left side) */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            {/* Placeholder icon */}
             <Box
               sx={{
                 width: 28,
@@ -90,21 +102,64 @@ export default function AppShell() {
               CD
             </Box>
 
-            <Typography
-              variant="h6"
-              sx={{ color: "primary.contrastText", fontWeight: 800 }}
-            >
+            <Typography variant="h6" sx={{ color: "primary.contrastText", fontWeight: 800 }}>
               Cloud drive
             </Typography>
           </Box>
 
           <Box sx={{ flex: 1 }} />
 
-          {/* Profile icon (rightmost) */}
-          <IconButton
-            onClick={(e) => setProfileAnchorEl(e.currentTarget)}
-            sx={{ p: 0.5 }}
+          {/* Notifications */}
+          <IconButton onClick={openNotifMenu} sx={{ color: "primary.contrastText" }}>
+            <Badge variant="dot" color="success" invisible={!hasUnread}>
+              <NotificationsIcon />
+            </Badge>
+          </IconButton>
+
+          <Menu
+            anchorEl={notifAnchorEl}
+            open={Boolean(notifAnchorEl)}
+            onClose={closeNotifMenu}
           >
+            <MenuItem disabled>
+              <ListItemText
+                primary="Notifications"
+                secondary={hasUnread ? "Unread" : "No new notifications"}
+              />
+            </MenuItem>
+            <Divider />
+
+            {notifications.length === 0 ? (
+              <MenuItem disabled>No new notifications</MenuItem>
+            ) : (
+              notifications.map((n) => (
+                <MenuItem
+                  key={n.id}
+                  onClick={async () => {
+                    try {
+                      await markRead(n.id);
+                    } catch {
+                      // even if mark-read fails, still proceed to navigate
+                    } finally {
+                      closeNotifMenu();
+                    }
+
+                    if (n.type === "file_shared") {
+                      navigate("/app/drive?view=shared");
+                    }
+                  }}
+                >
+                  <ListItemText
+                    primary={n.message}
+                    secondary={n.created_at ? new Date(n.created_at).toLocaleString() : ""}
+                  />
+                </MenuItem>
+              ))
+            )}
+          </Menu>
+
+          {/* Profile icon (rightmost) */}
+          <IconButton onClick={openProfileMenu} sx={{ p: 0.5 }}>
             <Avatar sx={{ width: 34, height: 34 }}>
               {(me?.email || "U")[0]?.toUpperCase?.() || "U"}
             </Avatar>
@@ -113,7 +168,7 @@ export default function AppShell() {
           <Menu
             anchorEl={profileAnchorEl}
             open={Boolean(profileAnchorEl)}
-            onClose={() => setProfileAnchorEl(null)}
+            onClose={closeProfileMenu}
           >
             <MenuItem disabled>
               <Stack>
@@ -128,7 +183,7 @@ export default function AppShell() {
 
             <MenuItem
               onClick={() => {
-                setProfileAnchorEl(null);
+                closeProfileMenu();
                 logout();
               }}
             >
