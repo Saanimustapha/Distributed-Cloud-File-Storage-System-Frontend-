@@ -8,6 +8,8 @@ import DrivePage from "../features/drive/DrivePage";
 // import SharedPage from "../features/shared/SharedPage";
 // import NodesPage from "../features/admin/nodes/NodesPage";
 import AppShell from "../components/layout/AppShell";
+import FilePeoplePage from "../features/files/FilePeoplePage";
+
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -16,13 +18,13 @@ export const router = createBrowserRouter([
   {
     path: "/app",
     element: (
-      // <ProtectedRoute>
-      //   <AppShell />
-      // </ProtectedRoute>
-      <AppShell />
+      <ProtectedRoute>
+        <AppShell />
+      </ProtectedRoute>
     ),
     children: [
       { path: "drive", element: <DrivePage /> },
+      { path: "files/:fileId/people", element: <FilePeoplePage /> }
       // { path: "shared", element: <SharedPage /> },
       // { path: "files/:fileId", element: <FileDetailsPage /> },
       // { path: "admin/nodes", element: <NodesPage /> },

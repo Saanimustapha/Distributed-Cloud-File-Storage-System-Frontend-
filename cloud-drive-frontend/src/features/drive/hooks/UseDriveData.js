@@ -11,24 +11,32 @@ export function useDriveData({ parentId, folderId, view, onError }) {
   const currentFolderId = useMemo(() => (folderId ? Number(folderId) : null), [folderId]);
 
 
-  const fetchFolders = useCallback(async () => {
-    const pageSize = 10;
-    let page = 1;
-    let all = [];
+const fetchFolders = useCallback(async () => {
+  const pageSize = 10;
+  let page = 1;
+  let all = [];
 
-    while (true) {
-      const qs = new URLSearchParams();
-      qs.set("page", String(page));
-      if (currentParentId !== null) qs.set("parent_id", String(currentParentId));
+  while (true) {
+    const qs = new URLSearchParams();
+    qs.set("page", String(page));
 
-      const { data } = await http.get(`/folders/all?${qs.toString()}`);
-      all = all.concat(data || []);
-      if (!data || data.length < pageSize) break;
-      page += 1;
+    // ✅ Root: omit parent_id entirely -> backend returns parent_id IS NULL
+    // ✅ Inside folder: pass parent_id=<current folder id>
+    if (currentFolderId !== null) {
+      qs.set("parent_id", String(currentFolderId));
     }
 
-    setFolders(all);
-  }, [currentParentId]);
+    const url = qs.toString() ? `/folders/all?${qs.toString()}` : `/folders/all`;
+    const { data } = await http.get(url);
+
+    all = all.concat(data || []);
+    if (!data || data.length < pageSize) break;
+    page += 1;
+  }
+
+  setFolders(all);
+}, [currentFolderId]);
+
 
   const fetchFiles = useCallback(async () => {
     if (view === "shared") {

@@ -248,11 +248,31 @@ const createFolder = async () => {
     }
   };
 
-  const downloadFile = (file) => {
-    const base = http.defaults.baseURL || "";
-    const url = `${base}/files/${file.id}/download`;
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
+const downloadFile = async (file) => {
+  try {
+    const res = await http.get(`/files/${file.id}/download`, {
+      responseType: "blob",
+    });
+
+    // Try to get filename from Content-Disposition
+    const disposition = res.headers?.["content-disposition"] || "";
+    const match = disposition.match(/filename="(.+)"/);
+    const filename = match?.[1] || file.name || "download";
+
+    const blobUrl = window.URL.createObjectURL(res.data);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(blobUrl);
+
+    showToast("success", "Download started.");
+  } catch (err) {
+    showToast("error", getApiErrorMessage(err));
+  }
+};
 
   const openRenameModalFor = (target) => {
     setRenameTarget(target);
@@ -289,22 +309,20 @@ const createFolder = async () => {
     setShareModalOpen(true);
   };
 
-  const submitShare = async ({ email, role }) => {
-    try {
-      const { data: user } = await http.get(`/users/search?email=${encodeURIComponent(email)}`);
-      const userId = user?.user_id ?? user?.id;
-      if (!userId) {
-        showToast("error", "User not found.");
-        return;
-      }
+const submitShare = async ({ userId, role }) => {
+  try {
+    await http.post(`/files/${shareTargetFileId}/share`, {
+      user_id: userId,
+      role,
+    });
 
-      await http.post(`/files/${shareTargetFileId}/share`, { user_id: userId, role });
-      showToast("success", "File shared successfully.");
-      setShareModalOpen(false);
-    } catch (err) {
-      showToast("error", getApiErrorMessage(err));
-    }
-  };
+    showToast("success", "File shared successfully.");
+    setShareModalOpen(false);
+  } catch (err) {
+    showToast("error", getApiErrorMessage(err));
+  }
+};
+
 
   const openUploadNewVersionModal = (fileId) => {
     setUploadNewVersionFileId(fileId);
