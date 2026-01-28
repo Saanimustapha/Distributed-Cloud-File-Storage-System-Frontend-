@@ -37,8 +37,9 @@ export default function RowMenu({
 
           <MenuItem
             onClick={() => {
+              const folder = item.data; // item = {type,data}
               onClose();
-              onDeleteFolder(item.data.id);
+              onDeleteFolder(folder);
             }}
           >
             <ListItemIcon>
@@ -87,8 +88,9 @@ export default function RowMenu({
 
           <MenuItem
             onClick={() => {
+              const file = item.data;
               onClose();
-              onDeleteFile(item.data.id);
+              onDeleteFile(file);
             }}
           >
             <ListItemIcon>

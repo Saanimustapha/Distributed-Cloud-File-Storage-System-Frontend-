@@ -15,6 +15,8 @@ import RowMenu from "./Component/RowMenu";
 import RenameModal from "./Component/modals/RenameModal";
 import ShareModal from "./Component/modals/ShareModal";
 import UploadNewVersionModal from "./Component/modals/UploadNewVersionModal";
+import ConfirmDeleteModal from "./Component/modals/ConfirmDeleteModal";
+
 
 export default function DrivePage() {
   const navigate = useNavigate();
@@ -27,6 +29,7 @@ export default function DrivePage() {
   // Toast
   const [toast, setToast] = useState({ open: false, severity: "success", message: "" });
   const showToast = (severity, message) => setToast({ open: true, severity, message });
+
 
   // Stable error handler (prevents refresh loops)
   const handleError = useCallback((msg) => {
@@ -48,6 +51,41 @@ export default function DrivePage() {
     view,
     onError: handleError,
   });
+
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null); 
+  // { type: "file"|"folder", data: { ... } }
+  const [deleting, setDeleting] = useState(false);
+
+
+  const openDeleteConfirm = (item) => {
+    setDeleteTarget(item);      // item = { type, data }
+    setConfirmDeleteOpen(true);
+  };
+
+  const closeDeleteConfirm = () => {
+    if (deleting) return;
+    setConfirmDeleteOpen(false);
+    setDeleteTarget(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+
+    setDeleting(true);
+    try {
+      if (deleteTarget.type === "folder") {
+        await deleteFolder(deleteTarget.data.id);
+      } else {
+        await deleteFile(deleteTarget.data.id);
+      }
+      setConfirmDeleteOpen(false);
+      setDeleteTarget(null);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
 
   // Breadcrumb
   const [breadcrumbPath, setBreadcrumbPath] = useState([]);
@@ -309,6 +347,8 @@ const downloadFile = async (file) => {
     setShareModalOpen(true);
   };
 
+  
+
 const submitShare = async ({ userId, role }) => {
   try {
     await http.post(`/files/${shareTargetFileId}/share`, {
@@ -382,11 +422,11 @@ const submitShare = async ({ userId, role }) => {
         onClose={closeRowMenu}
         item={rowMenuItem}
         onRename={(item) => openRenameModalFor(item)}
-        onDeleteFolder={deleteFolder}
+        onDeleteFolder={(folder) => openDeleteConfirm({ type: "folder", data: folder })}
         onDownload={downloadFile}
         onUploadNewVersion={openUploadNewVersionModal}
         onShare={openShareModal}
-        onDeleteFile={deleteFile}
+        onDeleteFile={(file) => openDeleteConfirm({ type: "file", data: file })}
       />
 
       <RenameModal
@@ -411,6 +451,22 @@ const submitShare = async ({ userId, role }) => {
         onClose={() => setUploadNewVersionOpen(false)}
         onSubmit={submitUploadNewVersion}
       />
+
+      <ConfirmDeleteModal
+        open={confirmDeleteOpen}
+        loading={deleting}
+        title={
+          deleteTarget?.type === "folder" ? "Delete folder?" : "Delete file?"
+        }
+        description={
+          deleteTarget
+            ? `Are you sure you want to delete "${deleteTarget.data.name}"? This action cannot be undone.`
+            : ""
+        }
+        onClose={closeDeleteConfirm}
+        onConfirm={confirmDelete}
+      />
+
 
       <Snackbar
         open={toast.open}
