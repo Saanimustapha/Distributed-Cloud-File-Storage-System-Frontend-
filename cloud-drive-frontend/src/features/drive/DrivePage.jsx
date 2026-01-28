@@ -63,6 +63,35 @@ export default function DrivePage() {
     setConfirmDeleteOpen(true);
   };
 
+  const tryOpenFolderDeleteConfirm = async (folder) => {
+    try {
+      const id = Number(folder?.id);
+      if (!Number.isInteger(id)) {
+        showToast("error", "Invalid folder id");
+        return;
+      }
+      const { data } = await http.get(`/folders/${id}/can-delete`);
+
+      if (!data?.can_delete) {
+        if (data?.has_files) {
+          showToast("error", "Folder is not empty. Move or delete files first.");
+        } else if (data?.has_subfolders) {
+          showToast("error", "Folder contains subfolders. Delete or move them first.");
+        } else {
+          showToast("error", "Folder cannot be deleted.");
+        }
+        return; // ✅ do NOT open modal
+      }
+
+      // ✅ only now open modal
+      setDeleteTarget({ type: "folder", data: folder });
+      setConfirmDeleteOpen(true);
+    } catch (err) {
+      showToast("error", getApiErrorMessage(err));
+    }
+  };
+
+
   const closeDeleteConfirm = () => {
     if (deleting) return;
     setConfirmDeleteOpen(false);
@@ -333,9 +362,19 @@ const downloadFile = async (file) => {
         fetchBreadcrumbPath().catch(() => {});
         showToast("success", "Folder renamed.");
       } else {
-        // you still don’t have a file-rename endpoint, so keep UI-only for files
-        setFiles((prev) => prev.map((x) => (x.id === renameTarget.data.id ? { ...x, name: trimmed } : x)));
-        showToast("success", "File renamed (UI only). Add backend endpoint to persist.");
+        // ✅ FILE rename persists in backend now
+
+        await http.patch(`/files/${renameTarget.data.id}/rename`, { name: trimmed });
+
+        // Update UI quickly (name only)
+        setFiles((prev) =>
+          prev.map((f) => (f.id === renameTarget.data.id ? { ...f, name: trimmed } : f))
+        );
+
+        // Optional but safest: refresh list so UI stays consistent with backend sorting/updated_at
+        await refresh();
+
+        showToast("success", "File renamed.");
       }
     } catch (err) {
       showToast("error", getApiErrorMessage(err));
@@ -422,9 +461,8 @@ const submitShare = async ({ userId, role }) => {
         onClose={closeRowMenu}
         item={rowMenuItem}
         onRename={(item) => openRenameModalFor(item)}
-        onDeleteFolder={(folder) => openDeleteConfirm({ type: "folder", data: folder })}
+        onDeleteFolder={(folder) => tryOpenFolderDeleteConfirm(folder)}
         onDownload={downloadFile}
-        onUploadNewVersion={openUploadNewVersionModal}
         onShare={openShareModal}
         onDeleteFile={(file) => openDeleteConfirm({ type: "file", data: file })}
       />

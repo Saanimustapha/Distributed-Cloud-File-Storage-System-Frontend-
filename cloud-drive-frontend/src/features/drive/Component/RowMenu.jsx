@@ -15,7 +15,6 @@ export default function RowMenu({
   onRename,
   onDeleteFolder,
   onDownload,
-  onUploadNewVersion,
   onShare,
   onDeleteFile,
 }) {
@@ -65,14 +64,15 @@ export default function RowMenu({
           <MenuItem
             onClick={() => {
               onClose();
-              onUploadNewVersion(item.data.id);
+              onRename(item);
             }}
           >
             <ListItemIcon>
               <SwapVertIcon fontSize="small" />
             </ListItemIcon>
-            Upload new version
+            Rename
           </MenuItem>
+
 
           <MenuItem
             onClick={() => {
