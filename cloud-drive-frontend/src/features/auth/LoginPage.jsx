@@ -19,7 +19,9 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 
+import { GoogleLogin } from "@react-oauth/google";
 import { loginUser } from "../../lib/auth/authApi";
+import { http } from "../../lib/api/http";
 import { tokenStorage } from "../../lib/auth/tokenStorage";
 
 // ---- helpers ----
@@ -137,7 +139,25 @@ export default function LoginPage() {
                   </Button>
                 </Stack>
               </Box>
+              <GoogleLogin
+              onSuccess={async (credentialResponse) => {
+                try {
+                  const idToken = credentialResponse?.credential;
+                  if (!idToken) throw new Error("Missing Google credential");
 
+                  const { data } = await http.post("/auth/google", { id_token: idToken });
+
+                  tokenStorage.set(data.access_token);
+                  navigate("/app/drive", { replace: true });
+                } catch (err) {
+                  // show your existing alert
+                  console.error(err);
+                }
+              }}
+              onError={() => {
+                console.error("Google Sign-In failed");
+              }}
+              />
               <Divider />
 
               <Typography variant="body2" color="text.secondary">

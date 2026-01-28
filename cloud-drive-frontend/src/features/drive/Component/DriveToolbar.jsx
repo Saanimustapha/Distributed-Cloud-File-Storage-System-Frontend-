@@ -46,12 +46,6 @@ export default function DriveToolbar({
               </Button>
             </Tooltip>
 
-            <Tooltip title="Upload new version (use ⋮ on a file row)">
-              <Button variant="text" startIcon={<SwapVertIcon />} disabled>
-                Upload new version
-              </Button>
-            </Tooltip>
-
             {uploadInput}
           </>
         )}
