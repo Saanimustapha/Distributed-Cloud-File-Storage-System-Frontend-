@@ -16,6 +16,8 @@ import RenameModal from "./Component/modals/RenameModal";
 import ShareModal from "./Component/modals/ShareModal";
 import UploadNewVersionModal from "./Component/modals/UploadNewVersionModal";
 import ConfirmDeleteModal from "./Component/modals/ConfirmDeleteModal";
+import ConfirmDeleteAllModal from "./Component/modals/ConfirmDeleteAllModal";
+
 
 
 export default function DrivePage() {
@@ -114,6 +116,54 @@ export default function DrivePage() {
       setDeleting(false);
     }
   };
+
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  const [deleteAllLoading, setDeleteAllLoading] = useState(false);
+
+  const showDeleteAllButton = view === "drive";
+
+
+  const deleteAllItems = async () => {
+
+    let data;
+
+    setDeleteAllLoading(true);
+    try {
+      if (currentFolderId == null) {
+       const res = await http.delete("/folders/delete-all-items/root");
+       data = res.data;
+    }else {
+       const res = await http.delete(`/folders/${currentFolderId}/delete-all-items`);
+       data = res.data
+    }
+      
+
+      // refresh list after deletions
+      await refresh();
+
+      // toast #1: success
+      showToast(
+        "success",
+        `Deleted ${data.deleted_files} file(s) and ${data.deleted_folders} empty folder(s).`
+      );
+
+      // toast #2: skipped folders warning (if any)
+      if (data.skipped_folders && data.skipped_folders.length > 0) {
+        const names = data.skipped_folders.map((f) => f.name).join(", ");
+        setTimeout(() => {
+          showToast("warning", `Skipped non-empty folder(s): ${names}`);
+        }, 450);
+      }
+
+      setDeleteAllOpen(false);
+    } catch (err) {
+      showToast("error", getApiErrorMessage(err));
+    } finally {
+      setDeleteAllLoading(false);
+    }
+  };
+
+
 
 
   // Breadcrumb
@@ -438,6 +488,8 @@ const submitShare = async ({ userId, role }) => {
           onRefresh={refresh}
           canGoBack={canGoBack}
           onGoRoot={goDriveRoot}
+          showDeleteAllButton={showDeleteAllButton}
+          onDeleteAllItems={() => setDeleteAllOpen(true)}
         />
 
         <DriveTable
@@ -503,6 +555,13 @@ const submitShare = async ({ userId, role }) => {
         }
         onClose={closeDeleteConfirm}
         onConfirm={confirmDelete}
+      />
+
+      <ConfirmDeleteAllModal
+        open={deleteAllOpen}
+        loading={deleteAllLoading}
+        onClose={() => setDeleteAllOpen(false)}
+        onConfirm={deleteAllItems}
       />
 
 

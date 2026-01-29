@@ -40,6 +40,7 @@ export default function AppShell() {
   const [me, setMe] = useState(null);
 
   const { items: notifications, hasUnread, markRead } = useNotifications();
+  const unreadCount = (notifications || []).filter((n) => !n.read && !n.is_read).length;
 
   const logout = () => {
     tokenStorage.clear();
@@ -111,9 +112,32 @@ export default function AppShell() {
 
           {/* Notifications */}
           <IconButton onClick={openNotifMenu} sx={{ color: "primary.contrastText" }}>
-            <Badge variant="dot" color="success" invisible={!hasUnread}>
+            {/* <Badge variant="dot" color="success" invisible={!hasUnread}>
+              <NotificationsIcon />
+            </Badge> */}
+            <Badge
+              badgeContent={unreadCount > 9 ? "9+" : unreadCount}
+              invisible={unreadCount === 0}
+              color="error"
+              overlap="circular"
+              anchorOrigin={{ vertical: "top", horizontal: "right" }}
+              sx={{
+                "& .MuiBadge-badge": {
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  minWidth: 18,
+                  height: 18,
+                  padding: "0 5px",
+                  borderRadius: "999px",
+                  border: "2px solid",
+                  borderColor: "primary.main", // makes it look “cut out” like your screenshot
+                },
+              }}
+            >
               <NotificationsIcon />
             </Badge>
+
+
           </IconButton>
 
           <Menu

@@ -14,6 +14,8 @@ export default function DriveToolbar({
   onRefresh,
   canGoBack,
   onGoRoot,
+  onDeleteAllItems,
+  showDeleteAllButton,
 }) {
   return (
     <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
@@ -44,6 +46,20 @@ export default function DriveToolbar({
               >
                 Upload file
               </Button>
+            </Tooltip>
+
+            <Tooltip title="Delete all items in this folder">
+            {showDeleteAllButton && (
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={onDeleteAllItems}
+                disabled={loading}
+                sx={{ ml: 1 }}
+              >
+                Delete all items
+              </Button>
+            )}
             </Tooltip>
 
             {uploadInput}
