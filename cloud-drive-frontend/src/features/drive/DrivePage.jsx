@@ -65,33 +65,18 @@ export default function DrivePage() {
     setConfirmDeleteOpen(true);
   };
 
-  const tryOpenFolderDeleteConfirm = async (folder) => {
-    try {
-      const id = Number(folder?.id);
-      if (!Number.isInteger(id)) {
-        showToast("error", "Invalid folder id");
-        return;
-      }
-      const { data } = await http.get(`/folders/${id}/can-delete`);
+const tryOpenFolderDeleteConfirm = async (folder) => {
+  const id = Number(folder?.id);
+  if (!Number.isInteger(id)) {
+    showToast("error", "Invalid folder id");
+    return;
+  }
 
-      if (!data?.can_delete) {
-        if (data?.has_files) {
-          showToast("error", "Folder is not empty. Move or delete files first.");
-        } else if (data?.has_subfolders) {
-          showToast("error", "Folder contains subfolders. Delete or move them first.");
-        } else {
-          showToast("error", "Folder cannot be deleted.");
-        }
-        return; // ✅ do NOT open modal
-      }
+  // ✅ Always allow confirming delete (recursive delete)
+  setDeleteTarget({ type: "folder", data: folder });
+  setConfirmDeleteOpen(true);
+};
 
-      // ✅ only now open modal
-      setDeleteTarget({ type: "folder", data: folder });
-      setConfirmDeleteOpen(true);
-    } catch (err) {
-      showToast("error", getApiErrorMessage(err));
-    }
-  };
 
 
   const closeDeleteConfirm = () => {
@@ -100,22 +85,33 @@ export default function DrivePage() {
     setDeleteTarget(null);
   };
 
-  const confirmDelete = async () => {
-    if (!deleteTarget) return;
 
-    setDeleting(true);
-    try {
-      if (deleteTarget.type === "folder") {
-        await deleteFolder(deleteTarget.data.id);
-      } else {
-        await deleteFile(deleteTarget.data.id);
-      }
-      setConfirmDeleteOpen(false);
-      setDeleteTarget(null);
-    } finally {
-      setDeleting(false);
+  const confirmDelete = async () => {
+      try {
+        const target = deleteTarget; // { type, data }
+        if (!target) return;
+
+        if (target.type === "folder") {
+          const id = Number(target.data.id);
+          const { data } = await http.delete(`/folders/${id}/delete-tree`);
+
+          showToast(
+            "success",
+            `Deleted ${data.deleted_files} file(s) and ${data.deleted_folders} folder(s).`
+          );
+
+          await refresh();
+        } else {
+          await deleteFile(deleteTarget.data.id);
+        }
+
+        setConfirmDeleteOpen(false);
+        setDeleteTarget(null);
+      } catch (err) {
+        showToast("error", getApiErrorMessage(err));
     }
   };
+
 
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [deleteAllLoading, setDeleteAllLoading] = useState(false);
@@ -123,45 +119,34 @@ export default function DrivePage() {
   const showDeleteAllButton = view === "drive";
 
 
-  const deleteAllItems = async () => {
+const deleteAllItems = async () => {
+  setDeleteAllLoading(true);
 
-    let data;
+  try {
+    const res =
+      currentFolderId == null
+        ? await http.delete("/folders/delete-all-items/root")
+        : await http.delete(`/folders/${currentFolderId}/delete-all-items`);
 
-    setDeleteAllLoading(true);
-    try {
-      if (currentFolderId == null) {
-       const res = await http.delete("/folders/delete-all-items/root");
-       data = res.data;
-    }else {
-       const res = await http.delete(`/folders/${currentFolderId}/delete-all-items`);
-       data = res.data
-    }
-      
+    const data = res.data;
 
-      // refresh list after deletions
-      await refresh();
+    // refresh list after deletions
+    await refresh();
 
-      // toast #1: success
-      showToast(
-        "success",
-        `Deleted ${data.deleted_files} file(s) and ${data.deleted_folders} empty folder(s).`
-      );
+    // ✅ single toast (no skipped folders anymore)
+    showToast(
+      "success",
+      `Deleted ${data.deleted_files} file(s) and ${data.deleted_folders} folder(s).`
+    );
 
-      // toast #2: skipped folders warning (if any)
-      if (data.skipped_folders && data.skipped_folders.length > 0) {
-        const names = data.skipped_folders.map((f) => f.name).join(", ");
-        setTimeout(() => {
-          showToast("warning", `Skipped non-empty folder(s): ${names}`);
-        }, 450);
-      }
+    setDeleteAllOpen(false);
+  } catch (err) {
+    showToast("error", getApiErrorMessage(err));
+  } finally {
+    setDeleteAllLoading(false);
+  }
+};
 
-      setDeleteAllOpen(false);
-    } catch (err) {
-      showToast("error", getApiErrorMessage(err));
-    } finally {
-      setDeleteAllLoading(false);
-    }
-  };
 
 
 
