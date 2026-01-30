@@ -19,7 +19,8 @@ export default function DriveTable({
   onOpenFile,
   onOpenRowMenu,
   onPeopleClick,
-}) {
+}) {                     
+
   return (
     <>
       {/* Header row */}
@@ -52,6 +53,18 @@ export default function DriveTable({
           {items.map(({ type, data }) => {
             const isFolder = type === "folder";
             const isInline = isFolder && inlineRenameId === data.id;
+
+            const isSharedWithMe = view === "shared" && !isFolder;
+            const isSharedByMe = view === "shared-by-me" && !isFolder;
+
+            // backend should send `unseen`
+            const isUnseenShared = isSharedWithMe && data.unseen;
+
+            const nameWeight = isSharedWithMe
+              ? (isUnseenShared ? 800 : 400) 
+              : isSharedByMe
+                ? 400                        
+                : 600; 
 
             return (
               <Box
@@ -91,7 +104,7 @@ export default function DriveTable({
                     />
                   ) : (
                     <Typography
-                      fontWeight={600}
+                      fontWeight={nameWeight}
                       sx={{ userSelect: "none" }}
                       onClick={() => {
                         if (isFolder) onOpenFolder(data);

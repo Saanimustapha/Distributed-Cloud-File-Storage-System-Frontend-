@@ -98,9 +98,11 @@ export default function FileViewerPage() {
           const content = await blob.text();
           if (!alive) return;
           setText(content);
+          await http.post(`/files/${fileId}/mark-opened`);
         } else {
           const url = URL.createObjectURL(blob);
           setBlobUrl(url);
+          await http.post(`/files/${fileId}/mark-opened`);
         }
       } catch (err) {
         if (!alive) return;
