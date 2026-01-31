@@ -474,19 +474,27 @@ const openRenameModalFor = (target) => {
 
   
 
-const submitShare = async ({ userId, role }) => {
+const submitShare = async ({ userIds, role }) => {
   try {
-    await http.post(`/files/${shareTargetFileId}/share`, {
-      user_id: userId,
+    const res = await http.post(`/files/${shareTargetFileId}/share`, {
+      user_ids: userIds,
       role,
     });
 
-    showToast("success", "File shared successfully.");
+    const data = res.data;
+    showToast("success", `Shared with ${data.count_shared} user(s).`);
+
+    if (data.count_skipped > 0) {
+      const skipped = data.skipped.map((s) => s.user_id).join(", ");
+      setTimeout(() => showToast("warning", `Skipped: ${skipped}`), 450);
+    }
+
     setShareModalOpen(false);
   } catch (err) {
     showToast("error", getApiErrorMessage(err));
   }
 };
+
 
 
   const openUploadNewVersionModal = (fileId) => {
