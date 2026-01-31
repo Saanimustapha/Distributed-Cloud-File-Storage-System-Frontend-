@@ -63,7 +63,6 @@ export default function AppShell() {
     { label: "My Drive", icon: <HomeIcon />, onClick: () => navigate("/app/drive") },
     { label: "Shared with me", icon: <GroupIcon />, onClick: () => navigate("/app/drive?view=shared") },
     { label: "Shared by me", icon: <GroupAddIcon />, onClick: () => navigate("/app/drive?view=shared-by-me") },
-    { label: "Nodes", icon: <DnsIcon />, onClick: () => navigate("/app/admin/nodes") },
   ];
 
   const openNotifMenu = (e) => setNotifAnchorEl(e.currentTarget);

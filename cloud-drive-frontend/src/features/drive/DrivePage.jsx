@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Box, Paper, Snackbar, Alert } from "@mui/material";
+import { Box, Paper, Snackbar, Alert, Button } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 
 import { http } from "../../lib/api/http";
 import { getApiErrorMessage } from "./utils/format";
@@ -111,6 +112,9 @@ const tryOpenFolderDeleteConfirm = async (folder) => {
         showToast("error", getApiErrorMessage(err));
     }
   };
+
+  const [noWriteOpen, setNoWriteOpen] = useState(false);
+  const [noWriteMsg, setNoWriteMsg] = useState("");
 
 
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
@@ -351,10 +355,16 @@ const createFolder = async () => {
     setRowMenuAnchorEl(evt.currentTarget);
     setRowMenuItem(item);
   };
+
   const closeRowMenu = () => {
-    setRowMenuAnchorEl(null);
+    setRowMenuAnchorEl(null); // close menu first (keep item)
+  };
+
+  // run when close animation finishes
+  const clearRowMenuItem = () => {
     setRowMenuItem(null);
   };
+
 
   const deleteFolder = async (id) => {
     try {
@@ -403,12 +413,26 @@ const downloadFile = async (file) => {
   }
 };
 
-  const openRenameModalFor = (target) => {
+const openRenameModalFor = (target) => {
+    // If we're in "Shared with me" view and user is not write/owner, block rename
+    if (view === "shared" && target?.type === "file") {
+      const role = target.data?.my_role; // should exist from /files/shared endpoint
+      const canWrite = role === "write" || role === "owner";
+
+      if (!canWrite) {
+        setNoWriteMsg("You cannot rename this file. Write permission is required.");
+        setNoWriteOpen(true);
+        return; // don't open RenameModal
+      }
+    }
+
+    //otherwise proceed normally
     setRenameTarget(target);
     setRenameModalTitle(target.type === "folder" ? "Rename folder" : "Rename file");
     setRenameInitialValue(target.data?.name || "");
     setRenameModalOpen(true);
   };
+
 
   // Modal rename (persist folders using backend)
   const submitRenameModal = async (newName) => {
@@ -524,6 +548,7 @@ const submitShare = async ({ userId, role }) => {
         anchorEl={rowMenuAnchorEl}
         open={Boolean(rowMenuAnchorEl)}
         onClose={closeRowMenu}
+        onExited={clearRowMenuItem}
         item={rowMenuItem}
         onRename={(item) => openRenameModalFor(item)}
         onDeleteFolder={(folder) => tryOpenFolderDeleteConfirm(folder)}
@@ -601,6 +626,21 @@ const submitShare = async ({ userId, role }) => {
         onClose={() => setDeleteAllOpen(false)}
         onConfirm={deleteAllItems}
       />
+
+      <Dialog open={noWriteOpen} onClose={() => setNoWriteOpen(false)}>
+        <DialogTitle>Action not allowed</DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mt: 1 }}>
+            {noWriteMsg}
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setNoWriteOpen(false)} variant="contained">
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
+
 
 
       <Snackbar
