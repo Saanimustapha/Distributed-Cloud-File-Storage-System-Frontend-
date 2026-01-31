@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -50,6 +50,14 @@ const schema = z.object({
 export default function LoginPage() {
   const navigate = useNavigate();
 
+  const hasSession = tokenStorage.hasActiveSession();
+
+  useEffect(() => {
+    if (hasSession) {
+      navigate("/app/drive", { replace: true });
+    }
+  }, [hasSession, navigate]);
+
   const {
     register,
     handleSubmit,
@@ -69,9 +77,19 @@ export default function LoginPage() {
     },
   });
 
-  const onSubmit = (values) => mutation.mutate(values);
+  const onSubmit = (values) => {
+    if (tokenStorage.hasActiveSession()) {
+      navigate("/app/drive", { replace: true });
+      return;
+    }
+    mutation.mutate(values);
+  };
+
 
   const loading = isSubmitting || mutation.isPending;
+
+  if (hasSession) return null;
+
 
   return (
     <Box
@@ -142,6 +160,7 @@ export default function LoginPage() {
               <GoogleLogin
               onSuccess={async (credentialResponse) => {
                 try {
+
                   const idToken = credentialResponse?.credential;
                   if (!idToken) throw new Error("Missing Google credential");
 
@@ -167,9 +186,6 @@ export default function LoginPage() {
                 </Link>
               </Typography>
 
-              <Typography variant="caption" color="text.secondary">
-                Tip: Your backend login uses form-urlencoded and expects <b>username=email</b>.
-              </Typography>
             </Stack>
           </CardContent>
         </Card>

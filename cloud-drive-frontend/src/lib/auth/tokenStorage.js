@@ -10,4 +10,8 @@ export const tokenStorage = {
   clear() {
     localStorage.removeItem(KEY);
   },
+  hasActiveSession() {
+    const t = localStorage.getItem(KEY);
+    return Boolean(t && t.trim().length > 0);
+  },
 };

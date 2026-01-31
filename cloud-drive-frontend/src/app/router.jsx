@@ -13,9 +13,12 @@ import FileViewerPage from "../features/files/FileViewerPage";
 import { NotificationsProvider } from "./NotificationsProvider";
 
 
+
 export const router = createBrowserRouter([
+
   { path: "/login", element: <LoginPage /> },
   { path: "/register", element: <RegisterPage /> },
+
 
   {
     path: "/app",
