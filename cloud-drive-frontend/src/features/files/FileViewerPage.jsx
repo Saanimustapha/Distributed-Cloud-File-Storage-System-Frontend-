@@ -61,6 +61,26 @@ export default function FileViewerPage() {
   const fileName = fileFromState?.name || `file-${fileId}`;
   const ext = useMemo(() => getExt(fileName), [fileName]);
 
+  const roleFromState = fileFromState?.my_role;   // shared list gives this
+  const [role, setRole] = useState(roleFromState || null);
+
+  const canWrite = role === "write" || role === "owner";
+
+  useEffect(() => {
+    if (role != null) return;
+
+    (async () => {
+      try {
+        const { data } = await http.get(`/files/${fileId}/access`);
+        setRole(data.role);
+      } catch (err) {
+        setError(getApiErrorMessage(err));
+      }
+    })();
+  }, [fileId, role]);
+
+
+
   const [loading, setLoading] = useState(true);
   const [blobUrl, setBlobUrl] = useState("");
   const [text, setText] = useState("");
@@ -174,7 +194,11 @@ export default function FileViewerPage() {
               {fileName}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {editable ? "Editable (text file)" : "Viewer"}
+              {editable
+                ? canWrite
+                  ? "Editable"
+                  : "Read-only"
+                : "Viewer"}
             </Typography>
           </Stack>
 
@@ -182,9 +206,9 @@ export default function FileViewerPage() {
             <Button variant="outlined" onClick={() => navigate(-1)}>
               Back
             </Button>
-            {editable && (
+            {editable && canWrite && (
               <Button variant="contained" onClick={saveNewVersion} disabled={saving || loading}>
-                {saving ? "Saving..." : "Save (new version)"}
+                {saving ? "Saving..." : "Save"}
               </Button>
             )}
           </Stack>
@@ -207,6 +231,7 @@ export default function FileViewerPage() {
               value={text}
               onChange={(v) => setText(v ?? "")}
               options={{
+                readOnly: !canWrite,
                 minimap: { enabled: false },
                 fontSize: 14,
                 wordWrap: "on",

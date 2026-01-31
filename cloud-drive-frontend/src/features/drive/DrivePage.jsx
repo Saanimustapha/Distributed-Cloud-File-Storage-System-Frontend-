@@ -225,6 +225,33 @@ const deleteAllItems = async () => {
     [setSearchParams]
   );
 
+  const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState(null); // file object
+  const [removing, setRemoving] = useState(false);
+
+  const removeSharedFile = async (file) => {
+    try {
+      setRemoving(true);
+      await http.delete(`/files/${file.id}/remove-from-shared`);
+      showToast("success", "Removed from Shared with me.");
+      setFiles((prev) => prev.filter((f) => f.id !== file.id));
+      setConfirmRemoveOpen(false);
+      setRemoveTarget(null);
+    } catch (err) {
+      showToast("error", getApiErrorMessage(err));
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  const tryOpenRemoveSharedConfirm = (file) => {
+    setRemoveTarget(file);
+    setConfirmRemoveOpen(true);
+  };
+
+
+
+
   // breadcrumb click open by id
   const openFolderById = useCallback(
     (id) => {
@@ -493,6 +520,7 @@ const submitShare = async ({ userId, role }) => {
       </Paper>
 
       <RowMenu
+        view={view}
         anchorEl={rowMenuAnchorEl}
         open={Boolean(rowMenuAnchorEl)}
         onClose={closeRowMenu}
@@ -502,6 +530,10 @@ const submitShare = async ({ userId, role }) => {
         onDownload={downloadFile}
         onShare={openShareModal}
         onDeleteFile={(file) => openDeleteConfirm({ type: "file", data: file })}
+        onRemoveShared={(file) => {
+          closeRowMenu();
+          tryOpenRemoveSharedConfirm(file);
+        }}
       />
 
       <RenameModal
@@ -541,6 +573,27 @@ const submitShare = async ({ userId, role }) => {
         onClose={closeDeleteConfirm}
         onConfirm={confirmDelete}
       />
+
+      <ConfirmDeleteModal
+        open={confirmRemoveOpen}
+        loading={removing}
+        title="Remove file?"
+        description={
+          removeTarget
+            ? `Remove "${removeTarget.name}" from your Shared with me list? You will lose access unless it is shared again.`
+            : ""
+        }
+        onClose={() => {
+          if (removing) return;
+          setConfirmRemoveOpen(false);
+          setRemoveTarget(null);
+        }}
+        onConfirm={() => {
+          if (!removeTarget) return;
+          removeSharedFile(removeTarget);
+        }}
+      />
+
 
       <ConfirmDeleteAllModal
         open={deleteAllOpen}

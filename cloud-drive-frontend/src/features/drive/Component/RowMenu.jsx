@@ -8,6 +8,7 @@ import ShareIcon from "@mui/icons-material/Share";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
 
 export default function RowMenu({
+  view,
   anchorEl,
   open,
   onClose,
@@ -17,6 +18,7 @@ export default function RowMenu({
   onDownload,
   onShare,
   onDeleteFile,
+  onRemoveShared
 }) {
   return (
     <Menu anchorEl={anchorEl} open={open} onClose={onClose}>
@@ -85,8 +87,9 @@ export default function RowMenu({
             </ListItemIcon>
             Share file
           </MenuItem>
-
-          <MenuItem
+          
+          {view !== "shared" && (
+            <MenuItem
             onClick={() => {
               const file = item.data;
               onClose();
@@ -98,6 +101,23 @@ export default function RowMenu({
             </ListItemIcon>
             Delete file
           </MenuItem>
+          )
+          }
+
+          {view === "shared" && item?.type === "file" && (
+            <MenuItem
+              onClick={() => {
+                onClose();
+                onRemoveShared(item.data);
+              }}
+            >
+              <ListItemIcon>
+                <DeleteIcon fontSize="small" />
+              </ListItemIcon>
+              Remove
+            </MenuItem>
+          )}
+
         </>
       )}
     </Menu>
