@@ -102,7 +102,17 @@ export default function AppShell() {
               CD
             </Box>
 
-            <Typography variant="h6" sx={{ color: "primary.contrastText", fontWeight: 800 }}>
+            <Typography variant="h6" sx={{ color: "primary.contrastText", fontWeight: 800, cursor: "pointer", }}
+              onClick={() => navigate("/app/drive", { replace: true })}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    navigate("/app/drive", { replace: true });
+                  }
+                }}
+            >
               Cloud drive
             </Typography>
           </Box>

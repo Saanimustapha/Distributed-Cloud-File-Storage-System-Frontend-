@@ -534,6 +534,19 @@ const submitShare = async ({ userIds, role }) => {
           onGoRoot={goDriveRoot}
           showDeleteAllButton={showDeleteAllButton}
           onDeleteAllItems={() => setDeleteAllOpen(true)}
+          onSearchSelect={(result) => {
+            if (result.type === "file") {
+              navigate(`/app/files/${result.id}/view`, { state: { file: result } });
+              return;
+            }
+            if (result.type === "folder") {
+              setSearchParams({
+                view: "drive",
+                parent_id: String(result.id),
+                folder_id: String(result.id),
+              });
+            }
+          }}
         />
 
         <DriveTable
