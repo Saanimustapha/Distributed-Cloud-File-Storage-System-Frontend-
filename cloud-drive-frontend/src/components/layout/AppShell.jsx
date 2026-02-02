@@ -157,7 +157,6 @@ export default function AppShell() {
             <MenuItem disabled>
               <ListItemText
                 primary="Notifications"
-                secondary={hasUnread ? "Unread" : "No new notifications"}
               />
             </MenuItem>
             <Divider />
@@ -206,9 +205,6 @@ export default function AppShell() {
             <MenuItem disabled>
               <Stack>
                 <Typography fontWeight={700}>{me?.email || "User"}</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {me?.id ? `User ID: ${me.id}` : " "}
-                </Typography>
               </Stack>
             </MenuItem>
 
