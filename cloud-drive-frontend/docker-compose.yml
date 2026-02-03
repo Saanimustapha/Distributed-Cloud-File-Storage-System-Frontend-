@@ -1,0 +1,19 @@
+services:
+  cloud-drive-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_GOOGLE_CLIENT_ID: "427434646379-16nd16kuapinp33gn5cieg4dnmbet2t5.apps.googleusercontent.com"
+        VITE_API_BASE_URL: "http://cloud_drive_backend:8000"
+    image: cloud-drive-frontend:latest
+    container_name: cloud_drive_frontend
+    ports:
+      - "5173:80"
+    networks:
+      - backend_net
+
+networks:
+  backend_net:
+    external: true
+    name: cloud-drive-backend_default   

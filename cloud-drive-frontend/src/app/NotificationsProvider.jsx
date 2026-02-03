@@ -32,7 +32,8 @@ export function NotificationsProvider({ children }) {
     if (!token) return;
 
     // Connect WS
-    const base = import.meta.env.VITE_API_BASE_URL?.replace(/^http/, "ws");
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const base = import.meta.env.VITE_API_BASE_URL?.replace(/^http/, protocol);
     const url = `${base}/ws/notifications?token=${encodeURIComponent(token)}`;
 
     const ws = new WebSocket(url);
