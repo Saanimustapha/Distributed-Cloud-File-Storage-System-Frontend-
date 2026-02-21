@@ -77,3 +77,9 @@ That’s why the frontend Axios base URL is set to:
 ```js
 // src/lib/api/http.js
 const baseURL = "/";
+```
+
+Environment Variables
+
+Required (Production)
+- VITE_GOOGLE_CLIENT_ID — Google OAuth client id for the frontend
