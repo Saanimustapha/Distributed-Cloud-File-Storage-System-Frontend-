@@ -126,3 +126,32 @@ export default {
   },
 };
 ```
+
+## Docker (Frontend)
+
+This repo uses a multi-stage build:
+
+- Node image builds the Vite app
+- Nginx serves the `/dist` build and proxies API routes to the backend container
+
+## Dockerfile 
+
+- Builds the app
+- Copies dist/ into Nginx
+- Uses your custom nginx.conf
+
+## Build Image and run Container
+
+Run the command `docker compose up --build`
+
+The frontend compose is configured to join the backend compose network:
+
+```bash
+networks:
+  backend_net:
+    external: true
+    name: cloud-drive-backend_default   
+```
+
+Start backend first, then frontend. 
+Here is a link to the backend: .
