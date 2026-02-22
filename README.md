@@ -79,7 +79,50 @@ That’s why the frontend Axios base URL is set to:
 const baseURL = "/";
 ```
 
-Environment Variables
+## Environment Variables
 
 Required (Production)
 - VITE_GOOGLE_CLIENT_ID — Google OAuth client id for the frontend
+
+Optional (Local Dev)
+
+If you don’t want to use a dev proxy and want direct API calls, you can switch Axios to:
+```js
+// const baseURL = import.meta.env.VITE_API_BASE_URL;
+```
+and set:
+`VITE_API_BASE_URL=http://localhost:8000`
+
+## Local Development
+
+Prerequisites
+- Node.js 18+ (recommended: Node 20)
+- Backend running locally or via Docker (FastAPI + Postgres + storage nodes)
+
+Install & Run
+```bash
+npm install
+npm run dev
+```
+
+## Dev Proxy (Recommended)
+
+If your frontend is running on `http://localhost:5173` and backend on `http://localhost:8000`,
+configure Vite dev proxy so `/auth`, `/files`, etc. forward to the backend.
+
+vite.config.js (example):
+```js
+export default {
+  server: {
+    proxy: {
+      "/auth": "http://localhost:8000",
+      "/folders": "http://localhost:8000",
+      "/files": "http://localhost:8000",
+      "/users": "http://localhost:8000",
+      "/notifications": "http://localhost:8000",
+      "/search": "http://localhost:8000",
+      "/ws": { target: "http://localhost:8000", ws: true },
+    },
+  },
+};
+```
